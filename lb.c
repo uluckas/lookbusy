@@ -1,4 +1,4 @@
-/* $Id: lb.c 757 2010-06-14 07:58:56Z aqua $
+/* $Id: lb.c 795 2013-04-22 05:12:27Z aqua $
  *
  * lookbusy -- a tool for producing synthetic CPU, memory consumption and
  *             disk loads on a host.
@@ -23,7 +23,7 @@
 /* and, redundantly ... */
 static const char *copyright =
 "Copyright (c) 2006-2008, by Devin Carraway <lookbusy@devin.com>\n"
-"$Id: lb.c 757 2010-06-14 07:58:56Z aqua $\n"
+"$Id: lb.c 795 2013-04-22 05:12:27Z aqua $\n"
 "\n"
 "This program is free software; you can redistribute it and/or modify\n"
 "it under the terms of the GNU General Public License as published by\n"
@@ -43,7 +43,7 @@ static const char *copyright =
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #else
-#define VERSION "1.2"
+#define VERSION "1.4"
 #define PACKAGE "lookbusy"
 #endif
 
@@ -80,7 +80,11 @@ static const char *copyright =
 #include <math.h>
 
 #ifndef HAVE_STRTOL
-#define strtol(x,e,b) atoi(x)
+#define strtol(x,e,b) atol(x)
+#endif
+
+#ifndef HAVE_STRTOLL
+#define strtoll(x,e,b) atol(x)
 #endif
 
 #ifdef HAVE_SYSCONF
@@ -132,7 +136,7 @@ static pid_t *disk_pids;
 static size_t n_disk_pids;
 static pid_t mem_pid;
 
-typedef void (*spinner_fn)(int, int, int, void*, void *);
+typedef void (*spinner_fn)(long long, long long, long long, void*, void *);
 
 static int say(int level, const char *fmt, ...)
 {
@@ -219,7 +223,7 @@ static int parse_large_size(const char *str, off_t *r)
         return -1;
     }
 
-    *r = (off_t)strtol(str + matches[1].rm_so, NULL, 10) *
+    *r = (off_t)strtoll(str + matches[1].rm_so, NULL, 10) *
            (matches[2].rm_so == -1 ? 1 :
             tolower(*(str + matches[2].rm_so)) == 't' ? (off_t)1 << 40 : 
             tolower(*(str + matches[2].rm_so)) == 'g' ? (off_t)1 << 30 :
@@ -254,7 +258,7 @@ static int parse_size(const char *str, size_t *r)
                 pattern, str, errbuf);
         return -1;
     }
-    *r = (size_t)strtol(str + matches[1].rm_so, NULL, 10) *
+    *r = (size_t)strtoll(str + matches[1].rm_so, NULL, 10) *
            (matches[2].rm_so == -1 ? 1 :
             tolower(*(str + matches[2].rm_so)) == 'g' ? 1024 * 1024 * 1024 : 
             tolower(*(str + matches[2].rm_so)) == 'm' ? 1024 * 1024 : 
@@ -550,7 +554,7 @@ static double cpu_spin_compute_util(enum cpu_util_mode mode, int l, int h,
     return -1;
 }
 
-static void cpu_spin(int ncpus, int util_l, int util_h, void *dummy, void *dummy2)
+static void cpu_spin(long long ncpus, long long util_l, long long util_h, void *dummy, void *dummy2)
 {
     uint64_t busycount;
     const uint64_t minimum_cycles = 10000;
@@ -630,13 +634,14 @@ static void cpu_spin(int ncpus, int util_l, int util_h, void *dummy, void *dummy
     _exit(1);
 }
 
-static void mem_stir(int sz, int dummy, int dummy2, void *dummyp, void *dummyp2)
+static void mem_stir(long long asz, long long dummy, long long dummy2, void *dummyp, void *dummyp2)
 {
     char *mem_stir_buffer;
     char *p;
     const size_t pagesize = LB_PAGE_SIZE;
+    const size_t sz = asz;
 
-    say(1, "mem_stir (%d): stirring %d bytes...\n", getpid(), sz);
+    say(1, "mem_stir (%d): stirring %llu bytes...\n", getpid(), sz);
     if ((mem_stir_buffer = (char *)malloc(sz)) == NULL) {
         perror("malloc");
         _exit(1);
@@ -673,7 +678,7 @@ static void mem_stir(int sz, int dummy, int dummy2, void *dummyp, void *dummyp2)
     _exit(1);
 }
 
-static void disk_churn(int dummy0, int dummy, int dummy2, void *pathv, void *szv)
+static void disk_churn(long long dummy0, long long dummy, long long dummy2, void *pathv, void *szv)
 {
     char *path = (char *)pathv;
     off_t sz = *(off_t *)szv;
@@ -762,7 +767,8 @@ static void disk_churn(int dummy0, int dummy, int dummy2, void *pathv, void *szv
     _exit(0);
 }
 
-static pid_t fork_and_call(char *desc, spinner_fn fn, int arg1, int arg2, int arg3, void *argP, void *argP2)
+
+static pid_t fork_and_call(char *desc, spinner_fn fn, long long arg1, long long arg2, long long arg3, void *argP, void *argP2)
 {
     pid_t p = fork();
     if (p == -1) {
@@ -851,7 +857,7 @@ static pid_t *start_disk_stirrer(off_t util, char **paths, size_t paths_n)
     return p;
 }
 
-static pid_t start_mem_whisker(int sz)
+static pid_t start_mem_whisker(size_t sz)
 {
     return fork_and_call("mem stirrer", mem_stir, sz, 0, 0, NULL, NULL);
 }

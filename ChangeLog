@@ -33,3 +33,9 @@
 
   + Desired on-disk size was not being correctly passed to the disk stirrer
     process, causing errors on little-endian systems with LFS support.
+
+1.4: One fix:
+
+  + Memory stirs greater than 4GB should work now, after fixes to non 64-bit
+    clean codepath.
+  + v1.3 did not properly identify itself as such with --version

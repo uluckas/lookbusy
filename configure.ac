@@ -2,10 +2,10 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT(lookbusy, 1.1, lookbusy@devin.com)
-AM_INIT_AUTOMAKE(lookbusy, 1.1)
+AC_INIT(lookbusy, 1.4, lookbusy@devin.com)
 AC_CONFIG_SRCDIR([lb.c])
 AM_CONFIG_HEADER(config.h)
+AM_INIT_AUTOMAKE([-Wall -Werror])
 
 # Checks for programs.
 AC_PROG_CC
@@ -31,7 +31,7 @@ AC_FUNC_REALLOC
 AC_TYPE_SIGNAL
 AC_FUNC_STAT
 AC_FUNC_VPRINTF
-AC_CHECK_FUNCS([sysconf gettimeofday memmove regcomp strdup strerror strcasecmp strtol tzset])
+AC_CHECK_FUNCS([sysconf gettimeofday memmove regcomp strdup strerror strcasecmp strtol strtoll tzset])
 AC_CHECK_LIB([m], [cos])
 
 AC_SYS_LARGEFILE
